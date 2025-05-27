@@ -258,6 +258,7 @@ export const DailyChallenge: React.FC<DailyChallengeProps> = ({ onBack }) => {
       const totalXP = baseXP + streakBonus + accuracyBonus;
       
       // Update XP in GameState
+      console.log(`Daily challenge completed. Adding ${totalXP} XP`);
       addXP(totalXP);
       
       // Update XP in Supabase
@@ -272,10 +273,19 @@ export const DailyChallenge: React.FC<DailyChallengeProps> = ({ onBack }) => {
           
           if (data) {
             const currentXP = data.xp || 0;
-            await supabase
+            const newXP = currentXP + totalXP;
+            console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
+            
+            const { error } = await supabase
               .from('profiles')
-              .update({ xp: currentXP + totalXP })
+              .update({ xp: newXP })
               .eq('id', user.id);
+              
+            if (error) {
+              console.error('Error updating XP in Supabase:', error);
+            } else {
+              console.log('XP updated successfully in Supabase');
+            }
           }
         }
         
@@ -295,7 +305,9 @@ export const DailyChallenge: React.FC<DailyChallengeProps> = ({ onBack }) => {
 
       // Award badges and titles for perfect scores
       if (score === currentChallenge.questions?.length) {
+        console.log(`Adding badge: Maître du ${currentChallenge.title}`);
         addBadge(`Maître du ${currentChallenge.title}`);
+        console.log(`Adding title: Champion ${currentChallenge.title}`);
         addTitle(`Champion ${currentChallenge.title}`);
       }
     }

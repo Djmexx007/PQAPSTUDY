@@ -52,6 +52,7 @@ export const SpeedGame: React.FC<SpeedGameProps> = ({ onComplete }) => {
       const gainedXP = Math.floor(score / 10);
       if (gainedXP > 0) {
         // Update XP in GameState
+        console.log(`Speed game over with score ${score}. Adding ${gainedXP} XP`);
         addXP(gainedXP);
         
         // Update XP in Supabase
@@ -67,10 +68,19 @@ export const SpeedGame: React.FC<SpeedGameProps> = ({ onComplete }) => {
               
               if (data) {
                 const currentXP = data.xp || 0;
-                await supabase
+                const newXP = currentXP + gainedXP;
+                console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
+                
+                const { error } = await supabase
                   .from('profiles')
-                  .update({ xp: currentXP + gainedXP })
+                  .update({ xp: newXP })
                   .eq('id', user.id);
+                  
+                if (error) {
+                  console.error('Error updating XP in Supabase:', error);
+                } else {
+                  console.log('XP updated successfully in Supabase');
+                }
               }
             }
             

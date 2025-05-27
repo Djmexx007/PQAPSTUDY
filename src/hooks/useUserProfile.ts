@@ -8,49 +8,73 @@ export function useUserProfile() {
 
   const loadProfile = useCallback(async () => {
     setLoading(true)
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    if (sessionError || !session?.user) {
-      setLoading(false)
-      return
-    }
-
-    setSession(session)
-
-    const userId = session.user.id
-    const email = session.user.email ?? ''
-    const defaultUsername = email.split('@')[0]
+    console.log('Loading user profile...');
 
     try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setLoading(false);
+        return;
+      }
+      
+      if (!session?.user) {
+        console.log('No user session found');
+        setLoading(false);
+        return;
+      }
 
-      if (error || !profileData) {
-        const { data: newProfile } = await supabase
+      setSession(session)
+
+      const userId = session.user.id
+      const email = session.user.email ?? ''
+      const defaultUsername = email.split('@')[0]
+
+      try {
+        const { data: profileData, error } = await supabase
           .from('profiles')
-          .insert({
-            id: userId,
-            username: defaultUsername,
-            avatar_url: '',
-            role: 'user',
-            xp: 0,
-            chapters_completed: [],
-            email,
-          })
-          .select()
+          .select('*')
+          .eq('id', userId)
           .single()
 
-        setProfile(newProfile)
-      } else {
-        setProfile(profileData)
+        if (error) {
+          console.error('Error fetching profile:', error);
+          
+          // If profile doesn't exist, create a new one
+          if (error.code === 'PGRST116') {
+            console.log('Creating new profile for user:', userId);
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                username: defaultUsername,
+                avatar_url: '',
+                role: 'user',
+                xp: 0,
+                chapters_completed: [],
+                email,
+              })
+              .select()
+              .single()
+
+            if (createError) {
+              console.error('Error creating profile:', createError);
+            } else {
+              console.log('New profile created:', newProfile);
+              setProfile(newProfile);
+            }
+          }
+        } else if (profileData) {
+          console.log('Profile loaded:', profileData);
+          setProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error in profile operations:', error);
       }
     } catch (error) {
-      console.error('Error loading profile:', error)
+      console.error('Error loading profile:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }, [])
 
@@ -86,12 +110,17 @@ export function useUserProfile() {
     window.location.href = '/'
   }, [])
 
+  const refreshProfile = useCallback(async () => {
+    console.log('Refreshing user profile...');
+    await loadProfile();
+  }, [loadProfile]);
+
   return {
     session,
     profile,
     loading,
     isAdmin: profile?.role === 'admin',
     signOut,
-    refreshProfile: loadProfile
+    refreshProfile
   }
 }

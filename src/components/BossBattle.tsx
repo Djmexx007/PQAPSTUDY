@@ -41,6 +41,7 @@ const BossBattle: React.FC<BossBattleProps> = ({ name, quiz, onWin, onLose }) =>
       const xpEarned = 500; // Base XP for boss victory
       
       // Update XP in GameState
+      console.log('Boss defeated! Adding XP:', xpEarned);
       addXP(xpEarned);
       
       // Update XP in Supabase
@@ -56,10 +57,19 @@ const BossBattle: React.FC<BossBattleProps> = ({ name, quiz, onWin, onLose }) =>
             
             if (data) {
               const currentXP = data.xp || 0;
-              await supabase
+              const newXP = currentXP + xpEarned;
+              console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
+              
+              const { error } = await supabase
                 .from('profiles')
-                .update({ xp: currentXP + xpEarned })
+                .update({ xp: newXP })
                 .eq('id', user.id);
+                
+              if (error) {
+                console.error('Error updating XP in Supabase:', error);
+              } else {
+                console.log('XP updated successfully in Supabase');
+              }
             }
           }
           

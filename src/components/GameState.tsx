@@ -183,26 +183,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load user data from Supabase on mount
   useEffect(() => {
     const loadUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data } = await supabase
-        .from('profiles')
-        .select('xp, chapters_completed, badges, titles')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
         
-      if (data) {
-        dispatch({ 
-          type: 'SET_USER_DATA', 
-          payload: {
-            playerXP: data.xp || 0,
-            playerLevel: Math.floor((data.xp || 0) / 1000) + 1,
-            completedChapters: data.chapters_completed || [],
-            badges: data.badges || [],
-            titles: data.titles || []
-          }
-        });
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('xp, chapters_completed, badges, titles')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error loading user data:', error);
+          return;
+        }
+        
+        if (data) {
+          dispatch({ 
+            type: 'SET_USER_DATA', 
+            payload: {
+              playerXP: data.xp || 0,
+              playerLevel: Math.floor((data.xp || 0) / 1000) + 1,
+              completedChapters: data.chapters_completed || [],
+              badges: data.badges || [],
+              titles: data.titles || []
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error in loadUserData:', error);
       }
     };
     
@@ -210,21 +219,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   // Save user data to Supabase when it changes (debounced)
-  const debouncedSaveUserData = React.useCallback(
-    debounce(async (userData: {
-      xp: number;
-      chapters_completed: string[];
-      badges: string[];
-      titles: string[];
-    }) => {
+  const saveUserData = async (userData: {
+    xp: number;
+    chapters_completed: string[];
+    badges: string[];
+    titles: string[];
+  }) => {
+    try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error('No user found when trying to save data');
+        return;
+      }
       
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update(userData)
         .eq('id', user.id);
-    }, 1000), // 1 second debounce
+        
+      if (error) {
+        console.error('Error saving user data to Supabase:', error);
+      } else {
+        console.log('User data saved successfully:', userData);
+      }
+    } catch (error) {
+      console.error('Exception in saveUserData:', error);
+    }
+  };
+  
+  const debouncedSaveUserData = useCallback(
+    debounce(saveUserData, 1000), // 1 second debounce
     []
   );
   
@@ -232,6 +256,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Only save if we have meaningful data to save
     if (state.playerXP > 0 || state.completedChapters.length > 0 || 
         state.badges.length > 0 || state.titles.length > 0) {
+      console.log('Saving user data:', {
+        xp: state.playerXP,
+        chapters_completed: state.completedChapters,
+        badges: state.badges,
+        titles: state.titles
+      });
+      
       debouncedSaveUserData({
         xp: state.playerXP,
         chapters_completed: state.completedChapters,
@@ -250,18 +281,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state]);
 
   const markChapterCompleted = useCallback((chapterId: string) => {
+    console.log('Marking chapter as completed:', chapterId);
     dispatch({ type: 'MARK_CHAPTER_COMPLETED', chapterId });
   }, []);
 
   const addXP = useCallback((amount: number) => {
+    console.log('Adding XP:', amount);
     dispatch({ type: 'ADD_XP', amount });
   }, []);
 
   const addBadge = useCallback((badge: string) => {
+    console.log('Adding badge:', badge);
     dispatch({ type: 'ADD_BADGE', badge });
   }, []);
 
   const addTitle = useCallback((title: string) => {
+    console.log('Adding title:', title);
     dispatch({ type: 'ADD_TITLE', title });
   }, []);
 

@@ -28,6 +28,7 @@ export const MiniGames: React.FC<MiniGamesProps> = ({ onBack }) => {
     const earnedXP = Math.floor((score / 100) * baseXP);
     
     // Add XP to local state
+    console.log(`Mini-game completed with score ${score}. Adding ${earnedXP} XP`);
     addXP(earnedXP);
     
     // Update XP in Supabase
@@ -42,10 +43,19 @@ export const MiniGames: React.FC<MiniGamesProps> = ({ onBack }) => {
         
         if (data) {
           const currentXP = data.xp || 0;
-          await supabase
+          const newXP = currentXP + earnedXP;
+          console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
+          
+          const { error } = await supabase
             .from('profiles')
-            .update({ xp: currentXP + earnedXP })
+            .update({ xp: newXP })
             .eq('id', user.id);
+            
+          if (error) {
+            console.error('Error updating XP in Supabase:', error);
+          } else {
+            console.log('XP updated successfully in Supabase');
+          }
         }
       }
       
@@ -67,6 +77,7 @@ export const MiniGames: React.FC<MiniGamesProps> = ({ onBack }) => {
 
     if (score >= 80) {
       const badgeName = `Champion du jeu : ${selectedGame}`;
+      console.log(`Adding badge: ${badgeName}`);
       addBadge(badgeName);
       setBadgeEarned(badgeName);
     }

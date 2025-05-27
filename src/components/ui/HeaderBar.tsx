@@ -27,11 +27,14 @@ export default function HeaderBar({ title = 'PQAP Study', rightElement }: Header
   // Force refresh profile data every 5 seconds to ensure XP updates are visible
   useEffect(() => {
     const interval = setInterval(() => {
-      refreshProfile();
+      if (profile) {
+        console.log('Auto-refreshing profile data...');
+        refreshProfile();
+      }
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [refreshProfile]);
+  }, [refreshProfile, profile]);
 
   // Memoize username and avatar to prevent unnecessary re-renders
   const username = profile?.username?.trim() || 'Utilisateur'

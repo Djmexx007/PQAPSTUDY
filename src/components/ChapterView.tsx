@@ -22,6 +22,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
   const minimumPassingScore = 1.0; // 100% pour réussir (3/3)
 
   const handleChapterComplete = (score: number, total: number) => {
+    console.log(`Chapter complete with score: ${score}/${total}`);
     setQuizCompleted(true);
     setQuizScore(score);
     setQuizTotal(total);
@@ -32,6 +33,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
       // Score parfait (3/3) - débloquer le boss ou compléter le chapitre
       if (!chapter.boss) {
         // Si pas de boss et score parfait, marquer le chapitre comme complété
+        console.log('Marking chapter as completed (no boss):', chapter.id);
         markChapterCompleted(chapter.id);
         toast.success('Chapitre complété avec succès!', {
           icon: '🎉',
@@ -70,6 +72,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
 
   const handleBossWin = () => {
     setBossDefeated(true);
+    console.log('Marking chapter as completed (boss defeated):', chapter.id);
     markChapterCompleted(chapter.id);
     toast.success('Boss vaincu! Chapitre complété!', {
       icon: '🏆',
