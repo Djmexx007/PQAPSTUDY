@@ -423,7 +423,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
 
       {/* Résultat final */}
       {quizCompleted && (
-        <div className="p-6 rounded-xl bg-green-700/10 border border-green-500/30 text-center">
+        <div className="p-6 rounded-xl bg-green-700/10 border border-green-500/30 text-center space-y-2 animate-pulse">
           <Trophy className="w-14 h-14 text-yellow-400 mx-auto mb-3" />
           <h3 className="text-xl font-bold text-green-300 mb-1">Quiz Terminé !</h3>
           <p className="text-green-200 mb-2">

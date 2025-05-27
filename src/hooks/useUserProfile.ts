@@ -21,12 +21,15 @@ export function useUserProfile() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) {
         console.error('Session error:', sessionError);
+        setLoading(false);
+        setLoadingOperation(false);
         return;
       }
       
       if (!session?.user) {
         console.log('No user session found');
         setLoading(false);
+        setLoadingOperation(false);
         return;
       }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from './GameState';
 import { ChapterContent } from './ChapterContent';
 import { Book, ArrowLeft, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
