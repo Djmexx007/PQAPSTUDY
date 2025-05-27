@@ -133,7 +133,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
   }, [chapter.quiz]);
 
   // Internal implementation of quiz completion logic
-  const completeQuizInternal = useCallback((finalScore: number, totalQuestions: number, answersArray: boolean[]) => {
+  const completeQuizInternal = useCallback(async (finalScore: number, totalQuestions: number, answersArray: boolean[]) => {
     if (quizCompleted) return; // Prevent double completion
     
     console.log('Completing quiz with:');
@@ -205,7 +205,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
               refreshProfile();
             };
             
-            updateXpInSupabase();
+            await updateXpInSupabase();
           } catch (error) {
             console.error('Error updating XP in Supabase:', error);
           }
@@ -266,10 +266,10 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
               });
               
               // Refresh profile to update UI
-              refreshProfile();
+              await refreshProfile();
             };
             
-            updateXpInSupabase();
+            await updateXpInSupabase();
           } catch (error) {
             console.error('Error updating XP in Supabase:', error);
           }

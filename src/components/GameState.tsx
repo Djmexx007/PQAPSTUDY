@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import toast from 'react-hot-toast';
 
 interface Chapter {
   id: string;
@@ -60,7 +61,7 @@ const GameContext = createContext<{
   dispatch: React.Dispatch<Action>;
   setCurrentWorld: (id: number) => void;
   setCurrentChapter: (id: string) => void;
-  markChapterCompleted: (chapterId: string) => void;
+  markChapterCompleted: (chapterId: string) => Promise<void>;
   addXP: (amount: number) => void;
   addBadge: (badge: string) => void;
   addTitle: (title: string) => void;
@@ -108,22 +109,42 @@ function reducer(state: GameState, action: Action): GameState {
       };
 
     case 'MARK_CHAPTER_COMPLETED':
-      if (state.completedChapters.includes(action.chapterId)) return state;
+      if (state.completedChapters.includes(action.chapterId)) {
+        console.log(`Chapter ${action.chapterId} already completed, skipping`);
+        return state;
+      }
 
+      console.log(`Marking chapter ${action.chapterId} as completed in state`);
+      console.log('Current completedChapters:', state.completedChapters);
+      
+      const newCompletedChapters = [...state.completedChapters, action.chapterId];
+      console.log('New completedChapters:', newCompletedChapters);
+      
       return {
         ...state,
-        completedChapters: [...state.completedChapters, action.chapterId],
+        completedChapters: newCompletedChapters,
       };
       
     case 'ADD_XP':
       const newXP = state.playerXP + action.amount;
       const newLevel = Math.floor(newXP / 1000) + 1;
 
+      console.log(`Adding ${action.amount} XP. New total: ${newXP}, New level: ${newLevel}`);
+
       // Déblocage automatique de mondes si niveau atteint
       const newUnlocked = [...state.unlockedWorlds];
-      if (newLevel >= 5 && !newUnlocked.includes(2)) newUnlocked.push(2);
-      if (newLevel >= 10 && !newUnlocked.includes(3)) newUnlocked.push(3);
-      if (newLevel >= 15 && !newUnlocked.includes(4)) newUnlocked.push(4);
+      if (newLevel >= 5 && !newUnlocked.includes(2)) {
+        console.log('Unlocking world 2 (level 5 reached)');
+        newUnlocked.push(2);
+      }
+      if (newLevel >= 10 && !newUnlocked.includes(3)) {
+        console.log('Unlocking world 3 (level 10 reached)');
+        newUnlocked.push(3);
+      }
+      if (newLevel >= 15 && !newUnlocked.includes(4)) {
+        console.log('Unlocking world 4 (level 15 reached)');
+        newUnlocked.push(4);
+      }
 
       return {
         ...state,
@@ -133,14 +154,24 @@ function reducer(state: GameState, action: Action): GameState {
       };
       
     case 'ADD_BADGE':
-      if (state.badges.includes(action.badge)) return state;
+      if (state.badges.includes(action.badge)) {
+        console.log(`Badge ${action.badge} already earned, skipping`);
+        return state;
+      }
+      
+      console.log(`Adding badge: ${action.badge}`);
       return {
         ...state,
         badges: [...state.badges, action.badge]
       };
       
     case 'ADD_TITLE':
-      if (state.titles.includes(action.title)) return state;
+      if (state.titles.includes(action.title)) {
+        console.log(`Title ${action.title} already earned, skipping`);
+        return state;
+      }
+      
+      console.log(`Adding title: ${action.title}`);
       return {
         ...state,
         titles: [...state.titles, action.title]
@@ -150,6 +181,7 @@ function reducer(state: GameState, action: Action): GameState {
       return initialState;
       
     case 'SET_USER_DATA':
+      console.log('Setting user data:', action.payload);
       return {
         ...state,
         ...action.payload
@@ -199,6 +231,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (data) {
+          console.log('Loaded user data from Supabase:', data);
           dispatch({ 
             type: 'SET_USER_DATA', 
             payload: {
@@ -218,7 +251,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUserData();
   }, []);
   
-  // Save user data to Supabase when it changes (debounced)
+  // Save user data to Supabase immediately without debounce
   const saveUserData = async (userData: {
     xp: number;
     chapters_completed: string[];
@@ -232,6 +265,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
+      console.log('Saving user data to Supabase:', userData);
       const { error } = await supabase
         .from('profiles')
         .update(userData)
@@ -239,14 +273,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) {
         console.error('Error saving user data to Supabase:', error);
+        toast.error('Erreur lors de la sauvegarde de votre progression');
       } else {
-        console.log('User data saved successfully:', userData);
+        console.log('User data saved successfully to Supabase');
       }
     } catch (error) {
       console.error('Exception in saveUserData:', error);
+      toast.error('Erreur lors de la sauvegarde de votre progression');
     }
   };
   
+  // Create a debounced version for non-critical updates
   const debouncedSaveUserData = useCallback(
     debounce(saveUserData, 1000), // 1 second debounce
     []
@@ -280,10 +317,45 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state.currentChapter = id;
   }, [state]);
 
-  const markChapterCompleted = useCallback((chapterId: string) => {
+  const markChapterCompleted = useCallback(async (chapterId: string) => {
     console.log('Marking chapter as completed:', chapterId);
+    
+    // First update local state
     dispatch({ type: 'MARK_CHAPTER_COMPLETED', chapterId });
-  }, []);
+    
+    // Then immediately save to Supabase without debounce
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No user found when trying to mark chapter as completed');
+        return;
+      }
+      
+      // Get current state after dispatch
+      const updatedCompletedChapters = [...state.completedChapters, chapterId];
+      
+      // Only add if not already included
+      if (!state.completedChapters.includes(chapterId)) {
+        console.log('Saving updated completed chapters to Supabase:', updatedCompletedChapters);
+        
+        const { error } = await supabase
+          .from('profiles')
+          .update({ chapters_completed: updatedCompletedChapters })
+          .eq('id', user.id);
+          
+        if (error) {
+          console.error('Error saving chapter completion to Supabase:', error);
+          toast.error('Erreur lors de la sauvegarde de votre progression');
+        } else {
+          console.log('Chapter completion saved successfully to Supabase');
+        }
+      } else {
+        console.log('Chapter already marked as completed, skipping Supabase update');
+      }
+    } catch (error) {
+      console.error('Exception in markChapterCompleted:', error);
+    }
+  }, [state.completedChapters]);
 
   const addXP = useCallback((amount: number) => {
     console.log('Adding XP:', amount);

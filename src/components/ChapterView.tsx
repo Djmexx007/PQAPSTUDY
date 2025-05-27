@@ -21,7 +21,21 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
   const chapterAlreadyCompleted = state.completedChapters.includes(chapter.id);
   const minimumPassingScore = 1.0; // 100% pour réussir (3/3)
 
-  const handleChapterComplete = (score: number, total: number) => {
+  // Log state for debugging
+  useEffect(() => {
+    console.log('ChapterView - Current state:', {
+      chapterAlreadyCompleted,
+      chapterId: chapter.id,
+      completedChapters: state.completedChapters,
+      bossDefeated,
+      quizCompleted,
+      quizScore,
+      quizTotal,
+      showRetryMessage
+    });
+  }, [chapter.id, state.completedChapters, chapterAlreadyCompleted, bossDefeated, quizCompleted, quizScore, quizTotal, showRetryMessage]);
+
+  const handleChapterComplete = async (score: number, total: number) => {
     console.log(`ChapterView received score: ${score}/${total}`);
     setQuizCompleted(true);
     setQuizScore(score);
@@ -37,7 +51,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
       if (!chapter.boss) {
         // Si pas de boss et score parfait, marquer le chapitre comme complété
         console.log('Marking chapter as completed (no boss):', chapter.id);
-        markChapterCompleted(chapter.id);
+        await markChapterCompleted(chapter.id);
         toast.success('Chapitre complété avec succès!', {
           icon: '🎉',
           style: {
@@ -74,10 +88,10 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
     setQuizScore(0);
   };
 
-  const handleBossWin = () => {
+  const handleBossWin = async () => {
     setBossDefeated(true);
     console.log('Marking chapter as completed (boss defeated):', chapter.id);
-    markChapterCompleted(chapter.id);
+    await markChapterCompleted(chapter.id);
     toast.success('Boss vaincu! Chapitre complété!', {
       icon: '🏆',
       style: {
@@ -90,10 +104,11 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
   // Si le chapitre est déjà terminé dans le state (en revenant), on affiche directement victoire
   useEffect(() => {
     if (chapterAlreadyCompleted) {
+      console.log(`Chapter ${chapter.id} is already completed, showing victory state`);
       setBossDefeated(true);
       setQuizCompleted(true);
     }
-  }, [chapterAlreadyCompleted]);
+  }, [chapterAlreadyCompleted, chapter.id]);
 
   return (
     <div className="space-y-4">
@@ -119,7 +134,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
           ) : showRetryMessage ? (
             <div className="p-6 bg-red-900/20 border-2 border-red-500 rounded-xl text-center">
               <XCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-              <h3 className="text-xl font-bold text-red-300 mb-2">Score insuffisant</h3>
+              <h3 className="text-xl font-bold text-red-300 mb-2">Score Insuffisant</h3>
               <p className="text-red-200 mb-4">
                 Vous avez obtenu {quizScore}/{quizTotal} mais vous devez obtenir un score parfait ({quizTotal}/{quizTotal}) pour continuer.
               </p>

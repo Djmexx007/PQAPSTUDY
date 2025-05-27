@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from './GameState';
 import { Book, Scroll, Swords, Map, Trophy, Star, ArrowRight, ArrowLeft, LockIcon, CheckCircle } from 'lucide-react';
 import { modules } from '../content';
@@ -19,29 +19,46 @@ export const StoryMode: React.FC<StoryProps> = ({ onBack }) => {
     ? world.chapters.find(c => c.id === selectedChapter)
     : null;
 
+  // Log state for debugging
+  useEffect(() => {
+    console.log('StoryMode - Current state:', {
+      completedChapters: state.completedChapters,
+      unlockedWorlds: state.unlockedWorlds,
+      selectedWorld,
+      selectedChapter
+    });
+  }, [state.completedChapters, state.unlockedWorlds, selectedWorld, selectedChapter]);
+
   const handleWorldSelect = (worldId: number) => {
+    console.log(`Selecting world: ${worldId}`);
     setSelectedWorld(worldId);
     setCurrentWorld(worldId);
     setShowIntro(true);
   };
 
   const handleChapterSelect = (chapterId: string) => {
+    console.log(`Selecting chapter: ${chapterId}`);
     setSelectedChapter(chapterId);
     setCurrentChapter(chapterId);
   };
 
   const handleChapterBack = () => {
+    console.log('Going back to chapter selection');
     setSelectedChapter(null);
     setShowIntro(false);
   };
 
   const isWorldUnlocked = (worldId: number) => {
     if (worldId === 1) return true; // Le monde 1 est toujours débloqué
-    return Array.isArray(state.unlockedWorlds) && state.unlockedWorlds.includes(worldId);
+    const isUnlocked = Array.isArray(state.unlockedWorlds) && state.unlockedWorlds.includes(worldId);
+    console.log(`Checking if world ${worldId} is unlocked: ${isUnlocked}`);
+    return isUnlocked;
   };
 
   const isChapterCompleted = (chapterId: string) => {
-    return Array.isArray(state.completedChapters) && state.completedChapters.includes(chapterId);
+    const isCompleted = Array.isArray(state.completedChapters) && state.completedChapters.includes(chapterId);
+    console.log(`Checking if chapter ${chapterId} is completed: ${isCompleted}`);
+    return isCompleted;
   };
 
   const isChapterUnlocked = (index: number, worldId: number) => {
@@ -52,7 +69,10 @@ export const StoryMode: React.FC<StoryProps> = ({ onBack }) => {
     if (index === 0) return true; // Premier chapitre de chaque monde est débloqué
     
     const previousChapterId = world?.chapters[index - 1]?.id;
-    return previousChapterId ? isChapterCompleted(previousChapterId) : false;
+    const isUnlocked = previousChapterId ? isChapterCompleted(previousChapterId) : false;
+    console.log(`Checking if chapter at index ${index} in world ${worldId} is unlocked: ${isUnlocked}`);
+    console.log(`Previous chapter ID: ${previousChapterId}, is completed: ${previousChapterId ? isChapterCompleted(previousChapterId) : 'N/A'}`);
+    return isUnlocked;
   };
 
   const renderWorldIntro = () => (

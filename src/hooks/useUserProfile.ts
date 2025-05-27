@@ -5,16 +5,22 @@ export function useUserProfile() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadingOperation, setLoadingOperation] = useState(false)
 
   const loadProfile = useCallback(async () => {
-    setLoading(true)
+    // Don't start a new loading operation if one is already in progress
+    if (loadingOperation) {
+      console.log('Profile loading operation already in progress, skipping');
+      return;
+    }
+
+    setLoadingOperation(true);
     console.log('Loading user profile...');
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) {
         console.error('Session error:', sessionError);
-        setLoading(false);
         return;
       }
       
@@ -75,8 +81,10 @@ export function useUserProfile() {
       console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
+      setLoadingOperation(false);
+      console.log('Profile loading operation completed');
     }
-  }, [])
+  }, [loadingOperation])
 
   useEffect(() => {
     let mounted = true
@@ -111,9 +119,14 @@ export function useUserProfile() {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    console.log('Refreshing user profile...');
-    await loadProfile();
-  }, [loadProfile]);
+    // Only refresh if not already loading
+    if (!loadingOperation) {
+      console.log('Refreshing user profile...');
+      await loadProfile();
+    } else {
+      console.log('Skipping profile refresh - loading operation in progress');
+    }
+  }, [loadProfile, loadingOperation]);
 
   return {
     session,
