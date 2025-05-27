@@ -14,6 +14,9 @@ const ChapterProgressBar: React.FC<ChapterProgressBarProps> = ({
   const currentPercentage = totalQuestions > 0 ? (currentScore / totalQuestions) * 100 : 0;
   const minimumPercentage = minimumPassingScore * 100;
   
+  console.log(`ChapterProgressBar - currentScore: ${currentScore}, totalQuestions: ${totalQuestions}`);
+  console.log(`ChapterProgressBar - currentPercentage: ${currentPercentage}%, minimumPercentage: ${minimumPercentage}%`);
+  
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between text-xs text-green-300/70">

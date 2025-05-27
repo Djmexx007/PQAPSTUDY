@@ -22,12 +22,15 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
   const minimumPassingScore = 1.0; // 100% pour réussir (3/3)
 
   const handleChapterComplete = (score: number, total: number) => {
-    console.log(`Chapter complete with score: ${score}/${total}`);
+    console.log(`ChapterView received score: ${score}/${total}`);
     setQuizCompleted(true);
     setQuizScore(score);
     setQuizTotal(total);
     
     const scorePercentage = score / total;
+    console.log(`Score percentage: ${scorePercentage} (${score}/${total})`);
+    console.log(`Minimum passing score: ${minimumPassingScore}`);
+    console.log(`Passed quiz: ${scorePercentage >= minimumPassingScore}`);
     
     if (scorePercentage >= minimumPassingScore) {
       // Score parfait (3/3) - débloquer le boss ou compléter le chapitre
@@ -53,6 +56,7 @@ export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onBack }) => 
       }
     } else {
       // Score insuffisant (moins de 3/3)
+      console.log(`Insufficient score: ${score}/${total}`);
       setShowRetryMessage(true);
       toast.error(`Score insuffisant (${score}/${total}). Vous devez obtenir un score parfait (${total}/${total})`, {
         icon: '❌',
