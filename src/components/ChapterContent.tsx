@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGame } from './GameState';
-import { Book, Star, Trophy, Medal, Brain, Crown, Sparkles, Award, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
+import { Book, Brain, Trophy, ArrowRight, Sparkles, Shield, Star, Target, CheckCircle, XCircle } from 'lucide-react';
 import { Chapter } from '../types/chapter';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabaseClient';
@@ -19,9 +19,9 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [shuffledChoices, setShuffledChoices] = useState<any[]>([]);
-  const [quizCompleted, setQuizCompleted] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState<boolean[]>([]);
 
   // Score parfait requis (100%)
@@ -38,6 +38,11 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
     if (chapter.quiz) {
       console.log(`Initializing correctAnswers array with length ${chapter.quiz.length}`);
       setCorrectAnswers(new Array(chapter.quiz.length).fill(false));
+      setScore(0);
+      setCurrentQuestionIndex(0);
+      setSelectedAnswer(null);
+      setShowExplanation(false);
+      setQuizCompleted(false);
     }
   }, [chapter.quiz]);
 
@@ -60,26 +65,32 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
     console.log(`Selected answer: ${index}, Correct: ${selected?.correct}`);
     
     if (selected?.correct) {
-      // Update correctAnswers array
-      const newCorrectAnswers = [...correctAnswers];
-      newCorrectAnswers[currentQuestionIndex] = true;
-      console.log(`Marking question ${currentQuestionIndex} as correct`);
-      console.log('New correctAnswers array:', newCorrectAnswers);
-      setCorrectAnswers(newCorrectAnswers);
+      // Update correctAnswers array using functional update to ensure latest state
+      setCorrectAnswers(prevAnswers => {
+        const newAnswers = [...prevAnswers];
+        newAnswers[currentQuestionIndex] = true;
+        console.log(`Marking question ${currentQuestionIndex} as correct`);
+        console.log('New correctAnswers array:', newAnswers);
+        return newAnswers;
+      });
       
-      // Update score
-      const newScore = score + 1;
-      console.log(`Updating score: ${score} -> ${newScore}`);
-      setScore(newScore);
+      // Update score using functional update
+      setScore(prevScore => {
+        const newScore = prevScore + 1;
+        console.log(`Updating score: ${prevScore} -> ${newScore}`);
+        return newScore;
+      });
     } else {
-      // Mark this question as incorrect
-      const newCorrectAnswers = [...correctAnswers];
-      newCorrectAnswers[currentQuestionIndex] = false;
-      console.log(`Marking question ${currentQuestionIndex} as incorrect`);
-      console.log('New correctAnswers array:', newCorrectAnswers);
-      setCorrectAnswers(newCorrectAnswers);
+      // Mark this question as incorrect using functional update
+      setCorrectAnswers(prevAnswers => {
+        const newAnswers = [...prevAnswers];
+        newAnswers[currentQuestionIndex] = false;
+        console.log(`Marking question ${currentQuestionIndex} as incorrect`);
+        console.log('New correctAnswers array:', newAnswers);
+        return newAnswers;
+      });
     }
-  }, [showExplanation, chapter.quiz, shuffledChoices, currentQuestionIndex, correctAnswers, score]);
+  }, [showExplanation, chapter.quiz, shuffledChoices, currentQuestionIndex]);
 
   const handleNextQuestion = useCallback(() => {
     if (!chapter.quiz) return;
@@ -104,21 +115,22 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
     console.log(`finalScore: ${finalScore} out of ${chapter.quiz?.length || 0}`);
     
     // Calculate score percentage
-    const scorePercentage = finalScore / (chapter.quiz?.length || 1);
-    console.log(`scorePercentage: ${scorePercentage} (${finalScore}/${chapter.quiz?.length || 1})`);
+    const totalQuestions = chapter.quiz?.length || 1;
+    const scorePercentage = finalScore / totalQuestions;
+    console.log(`scorePercentage: ${scorePercentage} (${finalScore}/${totalQuestions})`);
     
     // Check if score meets minimum requirement (100%)
     const passedQuiz = scorePercentage >= minimumPassingScore;
     console.log(`passedQuiz: ${passedQuiz} (${scorePercentage} >= ${minimumPassingScore})`);
     
     // Pass the score to the parent component
-    console.log(`Calling onComplete with score: ${finalScore}, total: ${chapter.quiz?.length || 0}`);
-    onComplete(finalScore, chapter.quiz?.length || 0);
+    console.log(`Calling onComplete with score: ${finalScore}, total: ${totalQuestions}`);
+    onComplete(finalScore, totalQuestions);
     
     // Only award XP if the quiz is passed with a perfect score
     if (passedQuiz) {
       if (chapter.boss) {
-        const xpEarned = Math.floor((finalScore / (chapter.quiz?.length || 1)) * (chapter.boss.rewards.xp || 0));
+        const xpEarned = Math.floor((finalScore / totalQuestions) * (chapter.boss.rewards.xp || 0));
         console.log(`Boss chapter passed with perfect score. Earning ${xpEarned} XP`);
         
         if (typeof addXP === 'function') {
@@ -169,7 +181,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
         }
 
         // Only award badges and titles for perfect scores
-        if (finalScore === chapter.quiz?.length) {
+        if (finalScore === totalQuestions) {
           console.log(`Adding badge: ${chapter.boss.rewards.badge}`);
           if (typeof addBadge === 'function') addBadge(chapter.boss.rewards.badge);
           
@@ -178,7 +190,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
         }
       } else if (chapter.minigame?.rewards) {
         const baseXP = chapter.minigame.rewards.xp || 100;
-        const xpEarned = Math.floor((finalScore / (chapter.quiz?.length || 1)) * baseXP);
+        const xpEarned = Math.floor((finalScore / totalQuestions) * baseXP);
         console.log(`Minigame chapter passed with perfect score. Earning ${xpEarned} XP`);
         
         if (typeof addXP === 'function') {
@@ -229,7 +241,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
         }
 
         // Only award badges and titles for perfect scores
-        if (finalScore === chapter.quiz?.length) {
+        if (finalScore === totalQuestions) {
           if (chapter.minigame.rewards.badge && typeof addBadge === 'function') {
             console.log(`Adding badge: ${chapter.minigame.rewards.badge}`);
             addBadge(chapter.minigame.rewards.badge);
