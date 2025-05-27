@@ -15,7 +15,7 @@ interface ChapterContentProps {
 export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onComplete }) => {
   const { addXP, addBadge, addTitle } = useGame();
   const { refreshProfile } = useUserProfile();
-
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -23,6 +23,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
   const [score, setScore] = useState(0);
   const [shuffledChoices, setShuffledChoices] = useState<any[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState<boolean[]>([]);
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(null);
 
   // Score parfait requis (100%)
   const minimumPassingScore = 1.0;
@@ -43,6 +44,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
       setSelectedAnswer(null);
       setShowExplanation(false);
       setQuizCompleted(false);
+      setLastAnswerCorrect(null);
     }
   }, [chapter.quiz]);
 
@@ -63,6 +65,9 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
     const selected = shuffledChoices[index];
     
     console.log(`Selected answer: ${index}, Correct: ${selected?.correct}`);
+    
+    // Store whether this answer was correct for later use
+    setLastAnswerCorrect(!!selected?.correct);
     
     if (selected?.correct) {
       // Update correctAnswers array using functional update to ensure latest state
@@ -96,26 +101,48 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
     if (!chapter.quiz) return;
 
     if (currentQuestionIndex < chapter.quiz.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
     } else {
-      completeQuiz();
+      // Before completing the quiz, ensure the last answer is properly recorded
+      completeQuizWithFinalState();
     }
   }, [currentQuestionIndex, chapter.quiz]);
 
-  const completeQuiz = useCallback(async () => {
+  // This function ensures we have the most up-to-date state when completing the quiz
+  const completeQuizWithFinalState = useCallback(() => {
+    setCorrectAnswers(prevAnswers => {
+      // Get the most up-to-date correctAnswers array
+      const updatedAnswers = [...prevAnswers];
+      
+      // Calculate final score based on this updated array
+      const finalScore = updatedAnswers.filter(Boolean).length;
+      const totalQuestions = chapter.quiz?.length || 1;
+      
+      console.log('Final quiz completion with latest state:');
+      console.log('correctAnswers:', updatedAnswers);
+      console.log(`finalScore: ${finalScore} out of ${totalQuestions}`);
+      
+      // Now complete the quiz with these accurate values
+      completeQuizInternal(finalScore, totalQuestions, updatedAnswers);
+      
+      // Return the same array to avoid unnecessary re-renders
+      return updatedAnswers;
+    });
+  }, [chapter.quiz]);
+
+  // Internal implementation of quiz completion logic
+  const completeQuizInternal = useCallback((finalScore: number, totalQuestions: number, answersArray: boolean[]) => {
     if (quizCompleted) return; // Prevent double completion
+    
+    console.log('Completing quiz with:');
+    console.log(`finalScore: ${finalScore}, totalQuestions: ${totalQuestions}`);
+    console.log('correctAnswers:', answersArray);
+    
     setQuizCompleted(true);
     
-    // Calculate final score based on correctAnswers array
-    const finalScore = correctAnswers.filter(Boolean).length;
-    console.log('Final score calculation:');
-    console.log('correctAnswers:', correctAnswers);
-    console.log(`finalScore: ${finalScore} out of ${chapter.quiz?.length || 0}`);
-    
     // Calculate score percentage
-    const totalQuestions = chapter.quiz?.length || 1;
     const scorePercentage = finalScore / totalQuestions;
     console.log(`scorePercentage: ${scorePercentage} (${finalScore}/${totalQuestions})`);
     
@@ -139,42 +166,46 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
           
           // Update XP in Supabase
           try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-              const { data } = await supabase
-                .from('profiles')
-                .select('xp')
-                .eq('id', user.id)
-                .single();
-              
-              if (data) {
-                const currentXP = data.xp || 0;
-                const newXP = currentXP + xpEarned;
-                console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
-                
-                const { error } = await supabase
+            const updateXpInSupabase = async () => {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data } = await supabase
                   .from('profiles')
-                  .update({ xp: newXP })
-                  .eq('id', user.id);
+                  .select('xp')
+                  .eq('id', user.id)
+                  .single();
+                
+                if (data) {
+                  const currentXP = data.xp || 0;
+                  const newXP = currentXP + xpEarned;
+                  console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
                   
-                if (error) {
-                  console.error('Error updating XP in Supabase:', error);
-                } else {
-                  console.log('XP updated successfully in Supabase');
+                  const { error } = await supabase
+                    .from('profiles')
+                    .update({ xp: newXP })
+                    .eq('id', user.id);
+                    
+                  if (error) {
+                    console.error('Error updating XP in Supabase:', error);
+                  } else {
+                    console.log('XP updated successfully in Supabase');
+                  }
                 }
               }
-            }
+              
+              toast.success(`+${xpEarned} XP gagnés !`, {
+                icon: '✨',
+                style: {
+                  background: '#10B981',
+                  color: '#fff'
+                }
+              });
+              
+              // Refresh profile to update UI
+              refreshProfile();
+            };
             
-            toast.success(`+${xpEarned} XP gagnés !`, {
-              icon: '✨',
-              style: {
-                background: '#10B981',
-                color: '#fff'
-              }
-            });
-            
-            // Refresh profile to update UI
-            refreshProfile();
+            updateXpInSupabase();
           } catch (error) {
             console.error('Error updating XP in Supabase:', error);
           }
@@ -199,42 +230,46 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
           
           // Update XP in Supabase
           try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-              const { data } = await supabase
-                .from('profiles')
-                .select('xp')
-                .eq('id', user.id)
-                .single();
-              
-              if (data) {
-                const currentXP = data.xp || 0;
-                const newXP = currentXP + xpEarned;
-                console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
-                
-                const { error } = await supabase
+            const updateXpInSupabase = async () => {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data } = await supabase
                   .from('profiles')
-                  .update({ xp: newXP })
-                  .eq('id', user.id);
+                  .select('xp')
+                  .eq('id', user.id)
+                  .single();
+                
+                if (data) {
+                  const currentXP = data.xp || 0;
+                  const newXP = currentXP + xpEarned;
+                  console.log(`Updating XP in Supabase: ${currentXP} -> ${newXP}`);
                   
-                if (error) {
-                  console.error('Error updating XP in Supabase:', error);
-                } else {
-                  console.log('XP updated successfully in Supabase');
+                  const { error } = await supabase
+                    .from('profiles')
+                    .update({ xp: newXP })
+                    .eq('id', user.id);
+                    
+                  if (error) {
+                    console.error('Error updating XP in Supabase:', error);
+                  } else {
+                    console.log('XP updated successfully in Supabase');
+                  }
                 }
               }
-            }
+              
+              toast.success(`+${xpEarned} XP gagnés !`, {
+                icon: '✨',
+                style: {
+                  background: '#10B981',
+                  color: '#fff'
+                }
+              });
+              
+              // Refresh profile to update UI
+              refreshProfile();
+            };
             
-            toast.success(`+${xpEarned} XP gagnés !`, {
-              icon: '✨',
-              style: {
-                background: '#10B981',
-                color: '#fff'
-              }
-            });
-            
-            // Refresh profile to update UI
-            refreshProfile();
+            updateXpInSupabase();
           } catch (error) {
             console.error('Error updating XP in Supabase:', error);
           }
@@ -263,7 +298,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
         }
       });
     }
-  }, [chapter, correctAnswers, quizCompleted, addXP, addBadge, addTitle, onComplete, refreshProfile, minimumPassingScore]);
+  }, [chapter, quizCompleted, addXP, addBadge, addTitle, onComplete, refreshProfile, minimumPassingScore]);
 
   if (!chapter.quiz || chapter.quiz.length === 0) {
     return (
@@ -430,6 +465,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = ({ chapter, onCompl
                   setSelectedAnswer(null);
                   setShowExplanation(false);
                   setCorrectAnswers(new Array(chapter.quiz?.length || 0).fill(false));
+                  setLastAnswerCorrect(null);
                 }}
                 className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white flex items-center gap-2 mx-auto"
               >
