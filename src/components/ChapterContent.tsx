@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGame } from './GameState';
-import { Star, Trophy, Medal, Brain, Crown, Sparkles, Award, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
+import { Book, Star, Trophy, Medal, Brain, Crown, Sparkles, Award, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
 import { Chapter } from '../types/chapter';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabaseClient';
