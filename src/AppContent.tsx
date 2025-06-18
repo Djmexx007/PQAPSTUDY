@@ -7,6 +7,7 @@ import {
   Book,
   Terminal,
   Star,
+  Shield
 } from 'lucide-react'
 
 import { useGame } from './components/GameState'
@@ -83,7 +84,7 @@ function AppContent() {
       <>
         {/* Game Modes */}
         <section className="mb-12">
-          <h2 className="text-3xl font-extrabold mb-6 text-emerald-300 flex items-center gap-3">
+          <h2 className="text-3xl font-extrabold mb-6 text-blue-600 flex items-center gap-3">
             <Swords className="w-6 h-6" />
             Choisis ton mode d'apprentissage
           </h2>
@@ -104,12 +105,12 @@ function AppContent() {
         <PodcastSection />
 
         {/* Study Tips */}
-        <section className="mt-12 p-6 rounded-xl border border-emerald-700 bg-emerald-900/30 shadow">
-          <h3 className="text-xl font-semibold mb-3 text-emerald-200 flex items-center gap-2">
+        <section className="mt-12 p-6 rounded-xl border border-blue-200 bg-blue-50 shadow">
+          <h3 className="text-xl font-semibold mb-3 text-blue-700 flex items-center gap-2">
             <Brain className="w-5 h-5" />
             Conseils pour mieux étudier
           </h3>
-          <ul className="text-emerald-100/90 space-y-2 text-sm list-disc list-inside">
+          <ul className="text-blue-800/90 space-y-2 text-sm list-disc list-inside">
             <li>🧠 Étudie par sessions courtes mais régulières</li>
             <li>🎯 Fixe-toi des objectifs précis (1 chapitre par jour)</li>
             <li>🎮 Rejoue les mini-jeux pour ancrer l'information</li>
@@ -121,8 +122,8 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-emerald-950 to-black text-emerald-100 font-sans">
-      <HeaderBar title="PQAP Study" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800 font-sans">
+      <HeaderBar title="CertiFi Québec" />
 
       <main className="container mx-auto px-4 pt-28 pb-16">
         {renderContent()}

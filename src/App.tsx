@@ -13,6 +13,7 @@ import AdminStats from './pages/AdminStats'
 import AdminContent from './pages/AdminContent'
 import AdminFun from './pages/AdminFun'
 import AdminPanel from './pages/AdminPanel'
+import LoginPage from './pages/LoginPage'
 
 import GameProgressPage from './pages/GameProgressPage'
 import BossBattlePage from './pages/BossBattlePage'
@@ -31,7 +32,7 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!profile) return <Navigate to="/" replace />
+  if (!profile) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
 
   return <>{children}</>
@@ -43,6 +44,7 @@ function App() {
       <GameProvider>
         <Routes>
           {/* Pages publiques */}
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/"
             element={

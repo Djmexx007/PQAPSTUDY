@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Mail, Lock, UserPlus, LogIn, User } from 'lucide-react'
+import { Shield, User, Lock, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function Auth() {
-  const [email, setEmail] = useState('')
+  const [representantNumber, setRepresentantNumber] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(false)
   const [authAttempts, setAuthAttempts] = useState(0)
   const navigate = useNavigate()
 
@@ -52,8 +53,16 @@ export default function Auth() {
     setAuthAttempts(prev => prev + 1)
 
     try {
-      if (!validateEmail(email)) {
-        throw new Error("Format d'email invalide")
+      // For this demo, we'll use the representant number as the email
+      // In a real implementation, you might want to handle this differently
+      const email = `${representantNumber}@certifi.quebec`
+      
+      if (!representantNumber.trim()) {
+        throw new Error("Numéro de représentant requis")
+      }
+
+      if (!password) {
+        throw new Error("Mot de passe requis")
       }
 
       if (isSignUp) {
@@ -89,7 +98,7 @@ export default function Auth() {
 
         if (signUpError) {
           if (signUpError.message.includes('already registered')) {
-            throw new Error("Un compte existe déjà avec cet email")
+            throw new Error("Un compte existe déjà avec ce numéro de représentant")
           }
           throw signUpError
         }
@@ -103,6 +112,7 @@ export default function Auth() {
               role: 'user',
               xp: 0,
               chapters_completed: [],
+              representant_number: representantNumber,
               avatar_url: 'https://vmjdzgxrprnhhcffuwmz.supabase.co/storage/v1/object/public/avatars/default-avatar.png'
             })
 
@@ -122,7 +132,7 @@ export default function Auth() {
 
         if (signInError) {
           if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error("Email ou mot de passe incorrect")
+            throw new Error("Numéro de représentant ou mot de passe incorrect")
           }
           throw signInError
         }
@@ -148,37 +158,52 @@ export default function Auth() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-zinc-900/95 rounded-2xl border border-emerald-600/30 shadow-xl backdrop-blur-sm">
-      <h2 className="text-2xl font-bold text-emerald-400 mb-6">
-        {isSignUp ? 'Créer un compte' : 'Connexion'}
-      </h2>
+    <div className="w-full max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
+      <div className="flex justify-center mb-6">
+        <div className="flex items-center gap-2">
+          <Shield className="w-8 h-8 text-blue-600" />
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">CertiFi Québec</h2>
+            <p className="text-sm text-gray-500">Formation Primerica</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          Connexion
+        </h2>
+        <p className="text-gray-600">
+          Accédez à votre formation CertiFi
+        </p>
+      </div>
 
       <form onSubmit={handleAuth} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-emerald-200 mb-1">Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de représentant</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={representantNumber}
+              onChange={(e) => setRepresentantNumber(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2 bg-black/50 border border-emerald-500/30 rounded-xl text-emerald-100 placeholder-emerald-700 focus:outline-none focus:border-emerald-500"
-              placeholder="votre@email.com"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Votre numéro de représentant"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-emerald-200 mb-1">Mot de passe</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2 bg-black/50 border border-emerald-500/30 rounded-xl text-emerald-100 placeholder-emerald-700 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
           </div>
@@ -187,38 +212,52 @@ export default function Auth() {
         {isSignUp && (
           <>
             <div>
-              <label className="block text-sm font-medium text-emerald-200 mb-1">Confirmer le mot de passe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-black/50 border border-emerald-500/30 rounded-xl text-emerald-100 placeholder-emerald-700 focus:outline-none focus:border-emerald-500"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-emerald-200 mb-1">Nom d'utilisateur</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-2 bg-black/50 border border-emerald-500/30 rounded-xl text-emerald-100 placeholder-emerald-700 focus:outline-none focus:border-emerald-500"
-                  placeholder="ex. TheRaven123"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="ex. JeanDupont"
                 />
               </div>
             </div>
           </>
         )}
 
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+            Se souvenir de moi
+          </label>
+        </div>
+
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {error}
           </div>
         )}
@@ -226,20 +265,12 @@ export default function Auth() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
-          ) : isSignUp ? (
-            <>
-              <UserPlus className="w-5 h-5" />
-              Créer un compte
-            </>
           ) : (
-            <>
-              <LogIn className="w-5 h-5" />
-              Se connecter
-            </>
+            "Se connecter"
           )}
         </button>
 
@@ -249,11 +280,20 @@ export default function Auth() {
             setIsSignUp(!isSignUp)
             setError(null)
           }}
-          className="w-full text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+          className="w-full text-sm text-blue-600 hover:text-blue-500 transition-colors"
         >
           {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
         </button>
       </form>
+
+      {/* Test account info */}
+      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Compte de test :</h3>
+        <div className="text-xs text-gray-600">
+          <p><span className="font-medium">Numéro :</span> tulip</p>
+          <p><span className="font-medium">Mot de passe :</span> Uzxe912</p>
+        </div>
+      </div>
     </div>
   )
 }

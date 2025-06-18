@@ -31,14 +31,18 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   if (loading || !authChecked) {
     return (
-      <div className="h-screen flex items-center justify-center bg-black text-white">
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-600">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
     )
   }
 
   if (!profile && location.pathname !== '/') {
-    return <Navigate to="/" replace />
+    return <Navigate to="/login" replace />
+  }
+
+  if (!profile) {
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>
